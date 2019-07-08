@@ -1,0 +1,102 @@
+// person_url (ID Badge) deluge
+if(input.person_url == "")
+{
+	// Intentional blank: Do Nothing.
+}
+else if (!input.person_url.contains("3hd.us/") || input.person_url.length() != 24)
+{
+	alert "User must be 24 characters in length i.e. 3hd.us/BsXi1IC6pmdTzYFf5";
+}
+else
+{
+	user_info = thisapp.getUser(input.person_url);
+	input.Name.first_name = user_info.get("person_first");
+	input.Name.last_name = user_info.get("person_last");
+}
+
+
+// document_url input
+if(input.document_url == "")
+{
+	// Intentional blank: Do Nothing.
+}
+else if(!input.document_url.contains("3hd.us/") || input.document_url.length() != 39)
+{
+	alert "Document must be 39 characters in length i.e. 3hd.us/0I7M9wWiul2FMQvo5ncEDNs9TYamNnP8";
+}
+else
+{
+	document_info = thisapp.getDocument(input.document_url);
+	input.part_number = document_info.get("part_number");
+	input.description = document_info.get("description");
+	input.quantity = document_info.get("quantity");
+}
+
+
+// Passcode - on validate
+if(!thisapp.passCodeCheck(input.user_url,input.Passcode))
+{
+	alert "Passcode does not match.";
+	cancel submit;
+}
+
+
+// Polulate Vendor Dropdown
+vendor_list = getUrl(pre_url + "company/" + userInfo.getJSON("company_code") + "/vendor/vendor_list" + suffix_url).toList();
+input.Supplier:ui.add(vendor_list);
+
+
+// Populate Part Number Dropdown
+pn_list = getUrl(pre_url + "company/" + userInfo.getJSON("company_code") + "/part_number/pn_list" + suffix_url).toList();
+input.Part_Number:ui.add(pn_list);
+
+
+// Polulate dropdowns dynamically (OLD VERSION)
+vendorList = getUrl(pre_url + "company/" + userInfo.getJSON("company_code") + "/vendor" + suffix_url).toMap();
+vendor_keys = vendorList.keys();
+supplier_out = List();
+for each  y in vendor_keys
+{
+	a = y.toString() + "-" + vendorList.getJSON(y).get("factoryName");
+	supplier_out.add(a);
+}
+input.Supplier:ui.add(supplier_out);
+
+// Check DB to see if something already exists
+check = getUrl("https://green-mercury-207900.firebaseio.com/company/" + input.Company_Code + "/assets/" + input.Asset_QR.getSuffix("/") + ".json?auth=BsnbTycojj69vRSeQzcZNJ7lcTLEPCUbJbyY9C7v");
+	a = check.tolist().size();
+	if(a != 0)
+	{
+		input.Radio = "Asset Assignment";
+		show Asset_Assignment;
+		hide Asset_Transfer;
+		asset_json = getUrl("https://green-mercury-207900.firebaseio.com/company/" + input.Company_Code + "/assets/asset_type.json?auth=BsnbTycojj69vRSeQzcZNJ7lcTLEPCUbJbyY9C7v").toMap();
+		asset_keys = asset_json.keys();
+		asset_dropdown = List();
+		for each  item in asset_keys
+		{
+			asset_dropdown.add(item);
+		}
+		input.Asset_Type:ui.add(asset_dropdown);
+	}
+	else
+	{
+		get_info = getUrl("https://green-mercury-207900.firebaseio.com/company/" + input.Company_Code + "/assets/" + input.Asset_QR.getSuffix("/") + ".json?auth=BsnbTycojj69vRSeQzcZNJ7lcTLEPCUbJbyY9C7v");
+		user = getUrl("https://green-mercury-207900.firebaseio.com/access_rights/" + input.ID_Badge.getSuffix("/") + ".json?auth=BsnbTycojj69vRSeQzcZNJ7lcTLEPCUbJbyY9C7v");
+		if(get_info.getJSON("current_user") == input.ID_Badge || user.getJSON("asset_role") == "Admin")
+		{
+			input.Radio = "Asset Transfer";
+			show Asset_Transfer;
+			hide Asset_Assignment;
+			input.Asset_Type:ui.add(get_info.getJSON("asset_type"));
+			input.Asset_Type = get_info.getJSON("asset_type");
+			input.Asset_Description = get_info.getJSON("description");
+			input.Warehouse = get_info.getJSON("warehouse");
+			input.Current_User = get_info.getJSON("current_user");
+			input.plain = "<img src=\"" + get_info.getJSON("picture") + "\">";
+		}
+		else
+		{
+			alert "You are not the current responsible party for this asset.";
+		}
+	}
